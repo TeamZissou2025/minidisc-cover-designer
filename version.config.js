@@ -6,14 +6,14 @@
  */
 
 module.exports = {
-  version: '0.3.7e',
+  version: '0.3.7f',
   
   // Current release info
   releaseDate: '2026-02-07',
-  releaseName: '4 Artwork Sources',
+  releaseName: 'Versioning Corrected',
   
   // Features for this version (shown in footer)
-  features: '4 artwork sources active',
+  features: 'Versioning Corrected',
   
   // Changelog for this version
   changelog: [
