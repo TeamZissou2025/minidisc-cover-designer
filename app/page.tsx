@@ -109,7 +109,7 @@ interface SearchResult {
   type: string;
   thumbnailUrl: string | null;
   artworkUrl: string | null;
-  source: 'lastfm' | 'deezer' | 'itunes';
+  source: 'spotify' | 'lastfm' | 'deezer' | 'itunes';
   relevanceScore?: number;
 }
 
@@ -360,6 +360,52 @@ export default function Home() {
     }
   }
 
+  // Spotify API Search with Fuzzy Matching (via proxy)
+  const searchSpotify = async (artist: string, album: string): Promise<SearchResult[]> => {
+    try {
+      const query = `artist:${artist} album:${album}`
+      const response = await fetch(
+        `/api/proxy/spotify?q=${encodeURIComponent(query)}`
+      )
+      
+      if (!response.ok) return []
+      
+      const data = await response.json()
+      
+      if (!data.albums?.items) return []
+      
+      return data.albums.items
+        .filter((item: any) => {
+          // Filter out singles, EPs, compilations
+          if (item.album_type !== 'album') return false
+          
+          // FUZZY MATCHING
+          const resultArtist = item.artists[0]?.name || ''
+          const resultAlbum = item.name
+          
+          return artistMatches(artist, resultArtist) && albumMatches(album, resultAlbum)
+        })
+        .map((item: any) => {
+          // Spotify images are sorted by size (largest first)
+          const largestImage = item.images[0] // Usually 640×640
+          
+          return {
+            id: `spotify-${item.id}`,
+            title: item.name,
+            artist: item.artists[0]?.name || artist,
+            year: item.release_date ? item.release_date.substring(0, 4) : '',
+            type: 'Album',
+            thumbnailUrl: item.images[2]?.url || item.images[1]?.url || largestImage?.url, // 64×64 or smaller
+            artworkUrl: largestImage?.url || null, // 640×640
+            source: 'spotify' as const
+          }
+        })
+    } catch (error) {
+      console.error('Spotify search failed:', error)
+      return []
+    }
+  }
+
   // Last.fm API Search with Fuzzy Matching (via proxy to avoid CORS/403)
   const searchLastFm = async (artist: string, album: string): Promise<SearchResult[]> => {
     try {
@@ -471,30 +517,35 @@ export default function Home() {
           console.log('🔍 Searching for:', { artist: searchArtist.trim(), album: searchAlbum.trim() })
           
           // Use Promise.allSettled to handle individual failures gracefully
-          // PRIORITY ORDER: iTunes (3000×3000) → Deezer (1000×1000) → Last.fm (300×300)
+          // PRIORITY ORDER: iTunes (3000×3000) → Spotify (640×640) → Deezer (1000×1000) → Last.fm (300×300)
           const results = await Promise.allSettled([
             searchiTunes(searchArtist.trim(), searchAlbum.trim()),
+            searchSpotify(searchArtist.trim(), searchAlbum.trim()),
             searchDeezer(searchArtist.trim(), searchAlbum.trim()),
             searchLastFm(searchArtist.trim(), searchAlbum.trim())
           ])
           
           console.log('📊 API call results:', {
             itunes: results[0].status,
-            deezer: results[1].status,
-            lastfm: results[2].status
+            spotify: results[1].status,
+            deezer: results[2].status,
+            lastfm: results[3].status
           })
           
           // Extract successful results (iTunes first for highest quality)
           const itunesResults = results[0].status === 'fulfilled' ? results[0].value : []
-          const deezerResults = results[1].status === 'fulfilled' ? results[1].value : []
-          const lastfmResults = results[2].status === 'fulfilled' ? results[2].value : []
+          const spotifyResults = results[1].status === 'fulfilled' ? results[1].value : []
+          const deezerResults = results[2].status === 'fulfilled' ? results[2].value : []
+          const lastfmResults = results[3].status === 'fulfilled' ? results[3].value : []
           
           if (results[0].status === 'rejected') console.error('❌ iTunes failed:', results[0].reason)
-          if (results[1].status === 'rejected') console.error('❌ Deezer failed:', results[1].reason)
-          if (results[2].status === 'rejected') console.error('❌ Last.fm failed:', results[2].reason)
+          if (results[1].status === 'rejected') console.error('❌ Spotify failed:', results[1].reason)
+          if (results[2].status === 'rejected') console.error('❌ Deezer failed:', results[2].reason)
+          if (results[3].status === 'rejected') console.error('❌ Last.fm failed:', results[3].reason)
           
           console.log('📈 Result counts:', {
             itunes: itunesResults.length,
+            spotify: spotifyResults.length,
             deezer: deezerResults.length,
             lastfm: lastfmResults.length
           })
@@ -505,6 +556,13 @@ export default function Home() {
               title: itunesResults[0].title,
               url: itunesResults[0].artworkUrl,
               resolution: itunesResults[0].artworkUrl.includes('3000x3000') ? '✅ 3000×3000' : '⚠️ Lower res'
+            })
+          }
+          if (spotifyResults[0]?.artworkUrl) {
+            console.log('🎧 Spotify sample:', {
+              title: spotifyResults[0].title,
+              url: spotifyResults[0].artworkUrl,
+              resolution: '640×640'
             })
           }
           if (deezerResults[0]?.artworkUrl) {
@@ -521,8 +579,8 @@ export default function Home() {
             })
           }
           
-          // Combine in priority order: iTunes → Deezer → Last.fm
-          const combined = [...itunesResults, ...deezerResults, ...lastfmResults]
+          // Combine in priority order: iTunes → Spotify → Deezer → Last.fm
+          const combined = [...itunesResults, ...spotifyResults, ...deezerResults, ...lastfmResults]
           
           // Log final order
           console.log('📊 Final results order (first 5):')
@@ -1131,6 +1189,11 @@ Please try again or use Manual Entry.`)
                             {result.source === 'itunes' && (
                               <span className="text-[10px] px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded-full whitespace-nowrap font-semibold">
                                 🎵 3000×3000
+                              </span>
+                            )}
+                            {result.source === 'spotify' && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded-full whitespace-nowrap font-semibold">
+                                🎧 640×640
                               </span>
                             )}
                             {result.source === 'deezer' && (
