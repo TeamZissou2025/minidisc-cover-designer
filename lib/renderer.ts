@@ -302,7 +302,15 @@ export class LabelRenderer {
       
       img.onload = () => {
         clearTimeout(timeout);
-        console.log('✅ Image loaded successfully:', img.width, 'x', img.height);
+        console.log('✅ Image loaded successfully');
+        console.log('🖼️ Image dimensions:', img.width, 'x', img.height, 'pixels');
+        console.log('🔍 Image size:', (img.width * img.height).toLocaleString(), 'total pixels');
+        console.log('📐 Canvas dimensions:', this.canvas.width, 'x', this.canvas.height);
+        console.log('📏 Draw region:', width, 'x', height, 'pixels');
+        
+        // Verify if this is actually high-res
+        const isHighRes = img.width >= 1500 || img.height >= 1500;
+        console.log(isHighRes ? '✅ HIGH-RES IMAGE LOADED' : '⚠️ LOW-RES IMAGE');
         
         try {
           // Calculate aspect ratios
