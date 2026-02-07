@@ -227,6 +227,37 @@ export class LabelRenderer {
     }
   }
 
+  private smartTruncate(text: string, maxWidth: number, fontSize: number, isBold: boolean = false): string {
+    // Intelligent truncation that tries to break at word boundaries
+    const weight = isBold ? 'bold' : 'normal';
+    this.ctx.font = `${weight} ${fontSize}px "${this.fontFamily}", "Futura PT", "Century Gothic", "Arial", sans-serif`;
+    
+    let truncated = text;
+    let metrics = this.ctx.measureText(truncated + '...');
+    
+    // If it fits, return as-is
+    if (metrics.width <= maxWidth) return truncated;
+    
+    // Try to find a good breaking point (word boundary)
+    while (metrics.width > maxWidth && truncated.length > 10) {
+      // Look for last space in the second half of the string
+      const lastSpace = truncated.lastIndexOf(' ');
+      
+      if (lastSpace > truncated.length / 2) {
+        // Break at word boundary
+        truncated = truncated.substring(0, lastSpace).trim();
+      } else {
+        // Just remove last character
+        truncated = truncated.substring(0, truncated.length - 1);
+      }
+      
+      metrics = this.ctx.measureText(truncated + '...');
+    }
+    
+    console.log(`✂️ Title truncated: "${text}" → "${truncated}..."`);
+    return truncated + '...';
+  }
+
   private async drawBanner(x: number, y: number, width: number, height: number, templateId: string): Promise<void> {
     // WHITE banner background
     this.ctx.fillStyle = '#FFFFFF';
@@ -431,6 +462,40 @@ export class LabelRenderer {
       return `${style} ${weight} ${size}px "${fontFamily}", "Futura PT", "Century Gothic", "Arial", sans-serif`;
     };
     
+    // SMART AUTO-SCALING for long titles
+    const autoScaleTitle = (text: string, baseFontSize: number, minFontSize: number): { fontSize: number; text: string } => {
+      let fontSize = baseFontSize;
+      const fontStr = buildFontString(fontSize, true); // Title is bold
+      this.ctx.font = fontStr;
+      let metrics = this.ctx.measureText(text);
+      
+      // If text fits at base size, return as-is
+      if (metrics.width <= maxWidth) {
+        console.log(`✅ Title fits at base size ${(baseFontSize / mmToPixels(1, this.dpi)).toFixed(1)}mm`);
+        return { fontSize: baseFontSize, text };
+      }
+      
+      // AUTO-SCALE DOWN: Reduce font size until it fits
+      console.log(`📏 Title too long (${Math.round(metrics.width)}px > ${Math.round(maxWidth)}px)`);
+      const reductionStep = mmToPixels(0.1, this.dpi); // 0.1mm per step
+      
+      while (metrics.width > maxWidth && fontSize > minFontSize) {
+        fontSize -= reductionStep;
+        const newFontStr = buildFontString(fontSize, true);
+        this.ctx.font = newFontStr;
+        metrics = this.ctx.measureText(text);
+      }
+      
+      // If still doesn't fit after scaling to minimum, truncate intelligently
+      if (metrics.width > maxWidth) {
+        console.log(`⚠️ Title still too long at minimum ${(minFontSize / mmToPixels(1, this.dpi)).toFixed(1)}mm - truncating`);
+        return { fontSize: minFontSize, text: this.smartTruncate(text, maxWidth, minFontSize, true) };
+      }
+      
+      console.log(`✅ Title scaled to ${(fontSize / mmToPixels(1, this.dpi)).toFixed(1)}mm to fit`);
+      return { fontSize, text };
+    };
+    
     const truncateText = (text: string, fontSize: number, fontStr: string): string => {
       this.ctx.font = fontStr;
       let metrics = this.ctx.measureText(text);
@@ -455,10 +520,15 @@ export class LabelRenderer {
       console.log(`✅ Text fits in safe zone: ${((safeBottom - textBottom) / mmToPixels(1, this.dpi)).toFixed(1)}mm margin`);
     }
     
-    // TITLE - Bold by default unless titleCase is on
-    const titleFont = buildFontString(titleSize, !fontStyle.titleCase);
+    // TITLE - Auto-scale font size for long titles
+    const formattedTitle = formatText(data.title);
+    const baseTitleSize = mmToPixels(2.8, this.dpi);
+    const minTitleSize = mmToPixels(1.8, this.dpi);
+    const { fontSize: scaledTitleSize, text: finalTitle } = autoScaleTitle(formattedTitle, baseTitleSize, minTitleSize);
+    
+    const titleFont = buildFontString(scaledTitleSize, !fontStyle.titleCase);
     this.ctx.font = titleFont;
-    this.ctx.fillText(truncateText(formatText(data.title), titleSize, titleFont), textX, line1Y);
+    this.ctx.fillText(finalTitle, textX, line1Y);
     
     // ARTIST
     const artistFont = buildFontString(subSize);
