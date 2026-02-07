@@ -52,29 +52,32 @@ All security fixes remain active:
 
 ---
 
-## 📦 **DEPLOYMENT**
+## 📦 **DEPLOYMENT (Vercel)**
 
-### **IMPORTANT: npm install required on production**
+### **Deploy v0.3.7b:**
 
 ```bash
 cd /home/daryl/md-label-fresh
 
-# Deploy files
-sudo cp -r .next /var/www/minidisc.squirclelabs.uk/
-sudo cp package.json /var/www/minidisc.squirclelabs.uk/
-sudo cp package-lock.json /var/www/minidisc.squirclelabs.uk/
-sudo cp .env.local /var/www/minidisc.squirclelabs.uk/.env.production.local
+# Configure Git (first time only)
+git config user.email "daryl@squirclelabs.uk"
+git config user.name "Daryl"
 
-# Install NEW dependency (jsPDF)
-cd /var/www/minidisc.squirclelabs.uk
-sudo npm install --production
+# Commit changes
+git add .
+git commit -m "v0.3.7b: High-resolution artwork priority + PDF export"
 
-# Restart PM2
-pm2 restart minidisc
-
-# Verify
-pm2 logs minidisc --lines 20
+# Push to GitHub (triggers Vercel auto-deploy)
+git push
 ```
+
+**That's it!** Vercel automatically:
+- ✅ Installs dependencies (including jsPDF)
+- ✅ Runs build
+- ✅ Deploys to production
+- ✅ Live in 30-60 seconds
+
+See `DEPLOYMENT.md` for full Vercel setup instructions.
 
 ---
 
