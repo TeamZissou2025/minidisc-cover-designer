@@ -131,7 +131,7 @@ interface SearchResult {
   type: string;
   thumbnailUrl: string | null;
   artworkUrl: string | null;
-  source: 'spotify' | 'lastfm' | 'deezer' | 'itunes';
+  source: 'spotify' | 'lastfm' | 'deezer' | 'itunes' | 'discogs';
   relevanceScore?: number;
 }
 
@@ -223,7 +223,7 @@ export default function Home() {
 
   // Branding console log
   useEffect(() => {
-    console.log('%c MiniDisc Cover Designer v0.3.7e ', 'background: #8b5cf6; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px;')
+    console.log('%c MiniDisc Cover Designer v0.3.7f ', 'background: #8b5cf6; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px;')
     console.log('%c by Joltt ', 'color: #3b82f6; font-weight: bold;')
   }, [])
 
@@ -475,6 +475,59 @@ export default function Home() {
     }
   }
 
+  // Discogs API Search with Fuzzy Matching (via proxy)
+  const searchDiscogs = async (artist: string, album: string): Promise<SearchResult[]> => {
+    try {
+      const query = `${artist} ${album}`
+      const response = await fetch(
+        `/api/proxy/discogs?q=${encodeURIComponent(query)}`
+      )
+      
+      if (!response.ok) return []
+      
+      const data = await response.json()
+      
+      if (!data.results || data.results.length === 0) return []
+      
+      return data.results
+        .filter((item: any) => {
+          // Filter for albums only
+          if (item.type !== 'release' && item.type !== 'master') return false
+          
+          // Filter out singles, EPs
+          if (item.format && item.format.some((f: string) => 
+            f.toLowerCase().includes('single') || f.toLowerCase().includes('ep')
+          )) return false
+          
+          // FUZZY MATCHING
+          const resultArtist = item.title.split(' - ')[0] || ''
+          const resultAlbum = item.title.split(' - ')[1] || item.title
+          
+          return artistMatches(artist, resultArtist) && albumMatches(album, resultAlbum)
+        })
+        .map((item: any) => {
+          // Extract artist and album from "Artist - Album" title format
+          const titleParts = item.title.split(' - ')
+          const itemArtist = titleParts[0] || artist
+          const itemAlbum = titleParts[1] || item.title
+          
+          return {
+            id: `discogs-${item.id}`,
+            title: itemAlbum,
+            artist: itemArtist,
+            year: item.year ? item.year.toString() : '',
+            type: item.type === 'master' ? 'Album' : 'Release',
+            thumbnailUrl: item.thumb || item.cover_image || null,
+            artworkUrl: item.cover_image || item.thumb || null, // Usually 600×600 or larger
+            source: 'discogs' as const
+          }
+        })
+    } catch (error) {
+      console.error('Discogs search failed:', error)
+      return []
+    }
+  }
+
   // iTunes Search API with Fuzzy Matching
   const searchiTunes = async (artist: string, album: string): Promise<SearchResult[]> => {
     try {
@@ -539,36 +592,41 @@ export default function Home() {
           console.log('🔍 Searching for:', { artist: searchArtist.trim(), album: searchAlbum.trim() })
           
           // Use Promise.allSettled to handle individual failures gracefully
-          // PRIORITY ORDER: iTunes (3000×3000) → Spotify (640×640) → Deezer (1000×1000) → Last.fm (300×300)
+          // PRIORITY ORDER: iTunes (3000×3000) → Deezer (1000×1000) → Discogs (600×600) → Spotify (640×640) → Last.fm (300×300)
           const results = await Promise.allSettled([
             searchiTunes(searchArtist.trim(), searchAlbum.trim()),
-            searchSpotify(searchArtist.trim(), searchAlbum.trim()),
             searchDeezer(searchArtist.trim(), searchAlbum.trim()),
+            searchDiscogs(searchArtist.trim(), searchAlbum.trim()),
+            searchSpotify(searchArtist.trim(), searchAlbum.trim()),
             searchLastFm(searchArtist.trim(), searchAlbum.trim())
           ])
           
           console.log('📊 API call results:', {
             itunes: results[0].status,
-            spotify: results[1].status,
-            deezer: results[2].status,
-            lastfm: results[3].status
+            deezer: results[1].status,
+            discogs: results[2].status,
+            spotify: results[3].status,
+            lastfm: results[4].status
           })
           
           // Extract successful results (iTunes first for highest quality)
           const itunesResults = results[0].status === 'fulfilled' ? results[0].value : []
-          const spotifyResults = results[1].status === 'fulfilled' ? results[1].value : []
-          const deezerResults = results[2].status === 'fulfilled' ? results[2].value : []
-          const lastfmResults = results[3].status === 'fulfilled' ? results[3].value : []
+          const deezerResults = results[1].status === 'fulfilled' ? results[1].value : []
+          const discogsResults = results[2].status === 'fulfilled' ? results[2].value : []
+          const spotifyResults = results[3].status === 'fulfilled' ? results[3].value : []
+          const lastfmResults = results[4].status === 'fulfilled' ? results[4].value : []
           
           if (results[0].status === 'rejected') console.error('❌ iTunes failed:', results[0].reason)
-          if (results[1].status === 'rejected') console.error('❌ Spotify failed:', results[1].reason)
-          if (results[2].status === 'rejected') console.error('❌ Deezer failed:', results[2].reason)
-          if (results[3].status === 'rejected') console.error('❌ Last.fm failed:', results[3].reason)
+          if (results[1].status === 'rejected') console.error('❌ Deezer failed:', results[1].reason)
+          if (results[2].status === 'rejected') console.error('❌ Discogs failed:', results[2].reason)
+          if (results[3].status === 'rejected') console.error('❌ Spotify failed:', results[3].reason)
+          if (results[4].status === 'rejected') console.error('❌ Last.fm failed:', results[4].reason)
           
           console.log('📈 Result counts:', {
             itunes: itunesResults.length,
-            spotify: spotifyResults.length,
             deezer: deezerResults.length,
+            discogs: discogsResults.length,
+            spotify: spotifyResults.length,
             lastfm: lastfmResults.length
           })
           
@@ -594,6 +652,20 @@ export default function Home() {
               resolution: deezerResults[0].artworkUrl.includes('1000x1000') ? '✅ 1000×1000' : '⚠️ Lower res'
             })
           }
+          if (discogsResults[0]?.artworkUrl) {
+            console.log('💿 Discogs sample:', {
+              title: discogsResults[0].title,
+              url: discogsResults[0].artworkUrl,
+              resolution: '~600×600 typical'
+            })
+          }
+          if (spotifyResults[0]?.artworkUrl) {
+            console.log('🎧 Spotify sample:', {
+              title: spotifyResults[0].title,
+              url: spotifyResults[0].artworkUrl,
+              resolution: '640×640'
+            })
+          }
           if (lastfmResults[0]?.artworkUrl) {
             console.log('📻 Last.fm sample:', {
               title: lastfmResults[0].title,
@@ -601,8 +673,8 @@ export default function Home() {
             })
           }
           
-          // Combine in priority order: iTunes → Spotify → Deezer → Last.fm
-          const combined = [...itunesResults, ...spotifyResults, ...deezerResults, ...lastfmResults]
+          // Combine in priority order: iTunes → Deezer → Discogs → Spotify → Last.fm
+          const combined = [...itunesResults, ...deezerResults, ...discogsResults, ...spotifyResults, ...lastfmResults]
           
           // Log final order
           console.log('📊 Final results order (first 5):')
@@ -943,7 +1015,7 @@ Please try again or use Manual Entry.`)
             </h1>
             <span className="text-yellow-500 text-sm font-mono">//</span>
             <span className={`text-sm font-mono ${uiTheme === 'light' ? 'text-gray-400' : 'text-gray-500'}`}>
-              v0.3.7e
+              v0.3.7f
             </span>
             
             {/* Feedback Button */}
@@ -1221,6 +1293,11 @@ Please try again or use Manual Entry.`)
                             {result.source === 'deezer' && (
                               <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded-full whitespace-nowrap font-semibold">
                                 🎶 1000×1000
+                              </span>
+                            )}
+                            {result.source === 'discogs' && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-pink-500/20 text-pink-400 rounded-full whitespace-nowrap font-semibold">
+                                💿 600×600
                               </span>
                             )}
                             {result.source === 'lastfm' && (
@@ -1676,7 +1753,7 @@ Please try again or use Manual Entry.`)
                   by Joltt
                 </div>
                 <div className={`text-xs mt-2 ${uiTheme === 'light' ? 'text-gray-600' : 'text-gray-500'}`}>
-                  Version 0.3.7e • Smart Title Scaling
+                  Version 0.3.7f • Discogs Integration
                 </div>
                 
                 {/* Ko-fi Button - Red Heart */}
