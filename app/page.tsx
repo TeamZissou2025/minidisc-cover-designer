@@ -1748,7 +1748,7 @@ Please try again or use Manual Entry.`)
                   by Joltt
                 </div>
                 <div className={`text-xs mt-2 ${uiTheme === 'light' ? 'text-gray-600' : 'text-gray-500'}`}>
-                  Version 0.3.7e • High-res images & zoom
+                  Version 0.3.7e • 4 artwork sources active
                 </div>
                 
                 {/* Ko-fi Button - Red Heart */}
