@@ -6,7 +6,6 @@ import { LabelRenderer, createExportCanvas } from '@/lib/renderer'
 import type { LabelData, RenderOptions, TemplateFormat } from '@/lib/types'
 import { DPI } from '@/lib/types'
 import { TEMPLATES, DEFAULT_TEMPLATE, TEMPLATE_CATEGORIES } from '@/lib/constants'
-import { compareTwoStrings } from 'string-similarity'
 import { 
   Search, 
   Download, 
@@ -59,7 +58,30 @@ const FONT_VARIANTS: Record<string, string> = {
   'Plus Jakarta Sans': 'wght@400;700',
 }
 
-// Fuzzy Search Utilities
+// Fuzzy Search Utilities - Built-in implementation (no dependencies)
+const compareTwoStrings = (str1: string, str2: string): number => {
+  const s1 = str1.toLowerCase().trim()
+  const s2 = str2.toLowerCase().trim()
+  
+  if (s1 === s2) return 1.0
+  if (s1.length < 2 || s2.length < 2) return 0.0
+  
+  // Simple bigram comparison
+  const pairs1 = new Set<string>()
+  const pairs2 = new Set<string>()
+  
+  for (let i = 0; i < s1.length - 1; i++) {
+    pairs1.add(s1.substring(i, i + 2))
+  }
+  
+  for (let i = 0; i < s2.length - 1; i++) {
+    pairs2.add(s2.substring(i, i + 2))
+  }
+  
+  const intersection = new Set([...pairs1].filter(x => pairs2.has(x)))
+  return (2.0 * intersection.size) / (pairs1.size + pairs2.size)
+}
+
 const calculateSimilarity = (str1: string, str2: string): number => {
   const s1 = str1.toLowerCase().trim()
   const s2 = str2.toLowerCase().trim()
