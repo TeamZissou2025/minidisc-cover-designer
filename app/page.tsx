@@ -621,6 +621,12 @@ Please try again or use Manual Entry.`)
       artworkUrl: result.artworkUrl
     })
     
+    console.log('🔍 URL Analysis:', {
+      hasThumb: result.artworkUrl?.includes('/image/thumb/'),
+      has3000x3000: result.artworkUrl?.includes('3000x3000'),
+      fullURL: result.artworkUrl
+    })
+    
     // Clear search results immediately
     setSearchResults([])
     
