@@ -3,7 +3,7 @@ import './globals.css'
 import GoogleAnalytics from './components/GoogleAnalytics'
 
 export const metadata: Metadata = {
-  title: 'MiniDisc Cover Designer v0.3.7b',
+  title: 'MiniDisc Cover Designer v0.3.7c',
   description: 'Create professional MiniDisc labels • by Joltt',
 }
 
