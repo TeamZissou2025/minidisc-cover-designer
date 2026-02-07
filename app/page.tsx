@@ -511,14 +511,25 @@ export default function Home() {
           const itemArtist = titleParts[0] || artist
           const itemAlbum = titleParts[1] || item.title
           
+          // Proxy Discogs images to bypass CORS
+          const rawArtworkUrl = item.cover_image || item.thumb || null
+          const artworkUrl = rawArtworkUrl 
+            ? `/api/proxy/image?url=${encodeURIComponent(rawArtworkUrl)}`
+            : null
+          
+          const rawThumbnailUrl = item.thumb || item.cover_image || null
+          const thumbnailUrl = rawThumbnailUrl
+            ? `/api/proxy/image?url=${encodeURIComponent(rawThumbnailUrl)}`
+            : null
+          
           return {
             id: `discogs-${item.id}`,
             title: itemAlbum,
             artist: itemArtist,
             year: item.year ? item.year.toString() : '',
             type: item.type === 'master' ? 'Album' : 'Release',
-            thumbnailUrl: item.thumb || item.cover_image || null,
-            artworkUrl: item.cover_image || item.thumb || null, // Usually 600×600 or larger
+            thumbnailUrl,
+            artworkUrl, // Proxied to bypass CORS
             source: 'discogs' as const
           }
         })
