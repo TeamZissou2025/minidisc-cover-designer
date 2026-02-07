@@ -30,20 +30,6 @@ import {
   Check
 } from 'lucide-react'
 
-// MusicBrainz API types
-interface MusicBrainzReleaseGroup {
-  id: string;
-  title: string;
-  'artist-credit': Array<{ name: string }>;
-  'first-release-date': string;
-  'primary-type'?: string;
-  'secondary-types'?: string[];
-}
-
-interface MusicBrainzResponse {
-  'release-groups': MusicBrainzReleaseGroup[];
-}
-
 // Curated geometric/grotesque fonts for label design
 const FONT_OPTIONS = [
   { name: 'Space Grotesk', description: 'Geometric, quirky' },
@@ -123,7 +109,7 @@ interface SearchResult {
   type: string;
   thumbnailUrl: string | null;
   artworkUrl: string | null;
-  source: 'musicbrainz' | 'deezer' | 'itunes';
+  source: 'lastfm' | 'deezer' | 'itunes';
   relevanceScore?: number;
 }
 
@@ -215,7 +201,7 @@ export default function Home() {
 
   // Branding console log
   useEffect(() => {
-    console.log('%c MiniDisc Cover Designer v0.3.7c ', 'background: #8b5cf6; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px;')
+    console.log('%c MiniDisc Cover Designer v0.3.7d ', 'background: #8b5cf6; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px;')
     console.log('%c by Joltt ', 'color: #3b82f6; font-weight: bold;')
   }, [])
 
@@ -374,79 +360,51 @@ export default function Home() {
     }
   }
 
-  // MusicBrainz API Search with Fuzzy Matching
-  const searchMusicBrainz = async (artist: string, album: string): Promise<SearchResult[]> => {
+  // Last.fm API Search with Fuzzy Matching
+  const searchLastFm = async (artist: string, album: string): Promise<SearchResult[]> => {
     try {
-      // Looser query for fuzzy matching
-      const query = `${artist} ${album} AND primarytype:album`
-      const mbUrl = `https://musicbrainz.org/ws/2/release-group/?query=${encodeURIComponent(query)}&fmt=json&limit=15`
+      const query = encodeURIComponent(`${artist} ${album}`)
+      const API_KEY = '6d43fd481fed3e5946df5b87c6d2aa89' // Free public API key
       
-      const mbResponse = await fetch(mbUrl, {
-        headers: {
-          'User-Agent': 'MDLabelMaker/1.0 (minidisc.squirclelabs.uk)',
-        },
-      })
+      const response = await fetch(
+        `https://ws.audioscrobbler.com/2.0/?method=album.search&album=${query}&api_key=${API_KEY}&format=json&limit=20`
+      )
       
-      if (!mbResponse.ok) return []
+      if (!response.ok) return []
       
-      const mbData: MusicBrainzResponse = await mbResponse.json()
+      const data = await response.json()
       
-      if (!mbData['release-groups'] || mbData['release-groups'].length === 0) return []
+      if (!data.results?.albummatches?.album) return []
       
-      // Filter with fuzzy matching
-      const filteredResults = mbData['release-groups']
-        .filter(rg => {
-          if (rg['primary-type'] !== 'Album') return false
-          
-          const secondaryTypes = (rg as any)['secondary-types'] || []
-          if (secondaryTypes.includes('Compilation')) return false
-          if (secondaryTypes.includes('Live')) return false
-          if (secondaryTypes.includes('Remix')) return false
-          
-          if (rg.title?.toLowerCase().includes('tribute')) return false
-          
-          const artistCredit = rg['artist-credit']?.[0]
-          if (!artistCredit) return false
-          if (artistCredit.name.toLowerCase().includes('various')) return false
+      return data.results.albummatches.album
+        .filter((item: any) => {
+          // Filter out invalid results
+          if (!item.name || !item.artist) return false
           
           // FUZZY MATCHING
-          const resultArtist = artistCredit.name
-          const resultAlbum = rg.title
-          
-          return artistMatches(artist, resultArtist) && albumMatches(album, resultAlbum)
+          return artistMatches(artist, item.artist) && albumMatches(album, item.name)
         })
-      
-      const results: SearchResult[] = filteredResults.map(rg => ({
-        id: rg.id,
-        title: rg.title,
-        artist: rg['artist-credit']?.[0]?.name || artist,
-        year: rg['first-release-date']?.substring(0, 4) || '',
-        type: rg['primary-type'] || 'Album',
-        thumbnailUrl: null,
-        artworkUrl: null,
-        source: 'musicbrainz' as const
-      }))
-      
-      // Try to fetch artwork from Cover Art Archive (with rate limiting)
-      for (let i = 0; i < Math.min(results.length, 5); i++) {
-        try {
-          if (i > 0) {
-            await new Promise(resolve => setTimeout(resolve, 1000))
-          }
+        .map((item: any) => {
+          // Last.fm provides multiple sizes - get the largest
+          const images = item.image || []
+          const largestImage = images.find((img: any) => img.size === 'extralarge') || 
+                              images.find((img: any) => img.size === 'large') ||
+                              images.find((img: any) => img.size === 'medium') ||
+                              images[images.length - 1]
           
-          const response = await fetch(`https://coverartarchive.org/release-group/${results[i].id}/front-250`)
-          if (response.ok) {
-            results[i].thumbnailUrl = response.url
-            results[i].artworkUrl = response.url.replace('-250', '')
+          return {
+            id: `lastfm-${item.mbid || item.name.replace(/\s+/g, '-')}`,
+            title: item.name,
+            artist: item.artist,
+            year: '', // Last.fm search doesn't provide year
+            type: 'Album',
+            thumbnailUrl: largestImage?.['#text'] || null,
+            artworkUrl: largestImage?.['#text'] || null, // Last.fm typically 300×300
+            source: 'lastfm' as const
           }
-        } catch {
-          // No artwork available
-        }
-      }
-      
-      return results
+        })
     } catch (error) {
-      console.error('MusicBrainz search failed:', error)
+      console.error('Last.fm search failed:', error)
       return []
     }
   }
@@ -512,38 +470,69 @@ export default function Home() {
       (async () => {
         try {
           console.log('⏱️ Starting API calls with 15s timeout...')
+          console.log('🔍 Searching for:', { artist: searchArtist.trim(), album: searchAlbum.trim() })
           
           // Use Promise.allSettled to handle individual failures gracefully
-          // PRIORITY ORDER: iTunes (3000×3000) → Deezer (1000×1000) → MusicBrainz (variable)
+          // PRIORITY ORDER: iTunes (3000×3000) → Deezer (1000×1000) → Last.fm (300×300)
           const results = await Promise.allSettled([
             searchiTunes(searchArtist.trim(), searchAlbum.trim()),
             searchDeezer(searchArtist.trim(), searchAlbum.trim()),
-            searchMusicBrainz(searchArtist.trim(), searchAlbum.trim())
+            searchLastFm(searchArtist.trim(), searchAlbum.trim())
           ])
           
           console.log('📊 API call results:', {
             itunes: results[0].status,
             deezer: results[1].status,
-            musicbrainz: results[2].status
+            lastfm: results[2].status
           })
           
           // Extract successful results (iTunes first for highest quality)
           const itunesResults = results[0].status === 'fulfilled' ? results[0].value : []
           const deezerResults = results[1].status === 'fulfilled' ? results[1].value : []
-          const mbResults = results[2].status === 'fulfilled' ? results[2].value : []
+          const lastfmResults = results[2].status === 'fulfilled' ? results[2].value : []
           
           if (results[0].status === 'rejected') console.error('❌ iTunes failed:', results[0].reason)
           if (results[1].status === 'rejected') console.error('❌ Deezer failed:', results[1].reason)
-          if (results[2].status === 'rejected') console.error('❌ MusicBrainz failed:', results[2].reason)
+          if (results[2].status === 'rejected') console.error('❌ Last.fm failed:', results[2].reason)
           
           console.log('📈 Result counts:', {
             itunes: itunesResults.length,
             deezer: deezerResults.length,
-            musicbrainz: mbResults.length
+            lastfm: lastfmResults.length
           })
           
-          // Return iTunes first (highest res), then Deezer, then MusicBrainz
-          return [...itunesResults, ...deezerResults, ...mbResults]
+          // Log sample URLs to verify resolution
+          if (itunesResults[0]?.artworkUrl) {
+            console.log('🎵 iTunes sample:', {
+              title: itunesResults[0].title,
+              url: itunesResults[0].artworkUrl,
+              resolution: itunesResults[0].artworkUrl.includes('3000x3000') ? '✅ 3000×3000' : '⚠️ Lower res'
+            })
+          }
+          if (deezerResults[0]?.artworkUrl) {
+            console.log('🎶 Deezer sample:', {
+              title: deezerResults[0].title,
+              url: deezerResults[0].artworkUrl,
+              resolution: deezerResults[0].artworkUrl.includes('1000x1000') ? '✅ 1000×1000' : '⚠️ Lower res'
+            })
+          }
+          if (lastfmResults[0]?.artworkUrl) {
+            console.log('📻 Last.fm sample:', {
+              title: lastfmResults[0].title,
+              url: lastfmResults[0].artworkUrl
+            })
+          }
+          
+          // Combine in priority order: iTunes → Deezer → Last.fm
+          const combined = [...itunesResults, ...deezerResults, ...lastfmResults]
+          
+          // Log final order
+          console.log('📊 Final results order (first 5):')
+          combined.slice(0, 5).forEach((result, i) => {
+            console.log(`   ${i+1}. [${result.source}] ${result.artist} - ${result.title}`)
+          })
+          
+          return combined
           
         } catch (error) {
           console.error('❌ Search error:', error)
@@ -870,7 +859,7 @@ Please try again or use Manual Entry.`)
             </h1>
             <span className="text-yellow-500 text-sm font-mono">//</span>
             <span className={`text-sm font-mono ${uiTheme === 'light' ? 'text-gray-400' : 'text-gray-500'}`}>
-              v0.3.7c
+              v0.3.7d
             </span>
             
             {/* Feedback Button */}
@@ -1580,7 +1569,7 @@ Please try again or use Manual Entry.`)
                   by Joltt
                 </div>
                 <div className={`text-xs mt-2 ${uiTheme === 'light' ? 'text-gray-600' : 'text-gray-500'}`}>
-                  Version 0.3.7c • Vercel Deployed
+                  Version 0.3.7d • Last.fm Integration
                 </div>
                 
                 {/* Ko-fi Button - Red Heart */}
