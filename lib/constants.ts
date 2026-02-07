@@ -162,3 +162,14 @@ export const TEMPLATE_CATEGORIES = [
   'Cassette Inserts',
   'Album Inserts',
 ]
+
+// Version information
+export const VERSION = '0.3.7e';
+
+export const VERSION_INFO = {
+  version: '0.3.7e',
+  releaseDate: '2026-02-07',
+  releaseName: '4 Artwork Sources',
+  features: '4 artwork sources active',
+};
+

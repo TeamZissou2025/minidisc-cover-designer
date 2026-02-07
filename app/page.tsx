@@ -5,7 +5,7 @@ import jsPDF from 'jspdf'
 import { LabelRenderer, createExportCanvas } from '@/lib/renderer'
 import type { LabelData, RenderOptions, TemplateFormat } from '@/lib/types'
 import { DPI } from '@/lib/types'
-import { TEMPLATES, DEFAULT_TEMPLATE, TEMPLATE_CATEGORIES } from '@/lib/constants'
+import { TEMPLATES, DEFAULT_TEMPLATE, TEMPLATE_CATEGORIES, VERSION, VERSION_INFO } from '@/lib/constants'
 import { 
   Search, 
   Download, 
@@ -223,7 +223,7 @@ export default function Home() {
 
   // Branding console log
   useEffect(() => {
-    console.log('%c MiniDisc Cover Designer v0.3.7e ', 'background: #8b5cf6; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px;')
+    console.log(`%c MiniDisc Cover Designer v${VERSION} `, 'background: #8b5cf6; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px;')
     console.log('%c by Joltt ', 'color: #3b82f6; font-weight: bold;')
   }, [])
 
@@ -1010,7 +1010,7 @@ Please try again or use Manual Entry.`)
             </h1>
             <span className="text-yellow-500 text-sm font-mono">//</span>
             <span className={`text-sm font-mono ${uiTheme === 'light' ? 'text-gray-400' : 'text-gray-500'}`}>
-              v0.3.7e
+              v{VERSION}
             </span>
             
             {/* Feedback Button */}
@@ -1748,7 +1748,7 @@ Please try again or use Manual Entry.`)
                   by Joltt
                 </div>
                 <div className={`text-xs mt-2 ${uiTheme === 'light' ? 'text-gray-600' : 'text-gray-500'}`}>
-                  Version 0.3.7e • 4 artwork sources active
+                  Version {VERSION} • {VERSION_INFO.features}
                 </div>
                 
                 {/* Ko-fi Button - Red Heart */}

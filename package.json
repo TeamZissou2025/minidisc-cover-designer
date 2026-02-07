@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "version:update": "node scripts/update-version.js",
+    "version:patch": "node scripts/bump-version.js patch && node scripts/update-version.js",
+    "version:minor": "node scripts/bump-version.js minor && node scripts/update-version.js",
+    "version:major": "node scripts/bump-version.js major && node scripts/update-version.js"
   },
   "dependencies": {
     "jspdf": "^4.1.0",
