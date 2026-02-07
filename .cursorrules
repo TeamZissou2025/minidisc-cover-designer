@@ -1,0 +1,52 @@
+# Cursor Project Rules for MD Label Maker
+
+## Project Structure
+- Root: /home/daryl/md-label-fresh
+- Source files:
+  - app/page.tsx (NOT src/app/page.tsx)
+  - lib/renderer.ts (NOT src/lib/renderer.ts)
+  - lib/types.ts
+  - lib/constants.ts
+- NO src/ directory exists
+- NO components/ directory - all UI in app/page.tsx
+
+## File Modification Rules
+1. Always modify files in their actual locations
+2. Save files immediately after modifying
+3. Show the full path of files you're modifying
+4. Verify files were saved by checking timestamps
+
+## Build and Deploy Process
+After modifying files, run these commands IN ORDER:
+```bash
+cd /home/daryl/md-label-fresh
+npm run build
+sudo cp -r out/* /var/www/minidisc.squirclelabs.uk/
+sudo systemctl reload nginx
+```
+
+## Testing
+After deployment, test at: https://minidisc.squirclelabs.uk
+
+## Critical Constraints
+- Do NOT modify lib/renderer.ts core architecture
+- Do NOT modify mmToPixels or DPI constants  
+- Do NOT add transforms to export canvas
+- Keep WYSIWYG fidelity between preview and export
+- Test exports at 300 DPI to verify dimensions
+
+## Console Verification
+After export, console should show:
+```
+Export: [template name]
+Export Canvas at 300 DPI: [width] × [height]px
+Export node has NO transforms: true
+```
+
+## Current Status
+- Phase 1: ✅ COMPLETE
+- Gate 2.1: ✅ COMPLETE (Multiple format templates)
+  - All 17 templates defined in lib/constants.ts
+  - Format selector dropdown working
+  - Banner conditionally shown
+- Ready for: Gate 2.2

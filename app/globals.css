@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Modern Dark Interface - Default Theme */
+
+:root {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #252541;
+  --bg-tertiary: #2d2d44;
+  --bg-hover: #363654;
+  --accent-primary: #a855f7;
+  --accent-hover: #9333ea;
+  --accent-glow: rgba(168, 85, 247, 0.3);
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-tertiary: #6b7280;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-focus: rgba(168, 85, 247, 0.5);
+  --success: #10b981;
+  --error: #ef4444;
+  --error-bg: rgba(239, 68, 68, 0.1);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Roboto', sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Focus states with purple glow */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent-primary);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-hover);
+}
+
+/* Smooth transitions */
+button, input, select, label {
+  transition: all 0.2s ease;
+}
+
+/* Gradient effects */
+.gradient-border {
+  border: 1px solid transparent;
+  background: linear-gradient(var(--bg-secondary), var(--bg-secondary)) padding-box,
+              linear-gradient(135deg, var(--accent-primary), transparent) border-box;
+}
+
+/* Card shadows */
+.card-shadow {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.card-shadow-lg {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* Purple glow effect */
+.glow-purple {
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.glow-purple-strong {
+  box-shadow: 0 0 30px var(--accent-glow), 0 0 60px var(--accent-glow);
+}
+
+/* Active indicator bar */
+.active-indicator {
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 64px;
+  height: 4px;
+  background: var(--accent-primary);
+  border-radius: 2px;
+}
+
+/* Button group styling */
+.button-group button {
+  transition: all 0.2s ease;
+}
+
+.button-group button:hover {
+  transform: translateY(-1px);
+}
+
+.button-group button:active {
+  transform: translateY(0);
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0%, 100% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Canvas high-quality rendering */
+canvas {
+  image-rendering: -webkit-optimize-contrast;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* For high DPI displays, use auto rendering */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  canvas {
+    image-rendering: auto;
+  }
+}
