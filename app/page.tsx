@@ -592,12 +592,11 @@ export default function Home() {
           console.log('🔍 Searching for:', { artist: searchArtist.trim(), album: searchAlbum.trim() })
           
           // Use Promise.allSettled to handle individual failures gracefully
-          // PRIORITY ORDER: iTunes (3000×3000) → Deezer (1000×1000) → Spotify (640×640) → Last.fm (300×300)
-          // NOTE: Discogs temporarily disabled due to API issues
+          // PRIORITY ORDER: iTunes (3000×3000) → Deezer (1000×1000) → Discogs (600×600) → Spotify (640×640) → Last.fm (300×300)
           const results = await Promise.allSettled([
             searchiTunes(searchArtist.trim(), searchAlbum.trim()),
             searchDeezer(searchArtist.trim(), searchAlbum.trim()),
-            // searchDiscogs(searchArtist.trim(), searchAlbum.trim()), // DISABLED - API errors
+            searchDiscogs(searchArtist.trim(), searchAlbum.trim()),
             searchSpotify(searchArtist.trim(), searchAlbum.trim()),
             searchLastFm(searchArtist.trim(), searchAlbum.trim())
           ])
@@ -605,28 +604,28 @@ export default function Home() {
           console.log('📊 API call results:', {
             itunes: results[0].status,
             deezer: results[1].status,
-            // discogs: 'disabled',
-            spotify: results[2].status,
-            lastfm: results[3].status
+            discogs: results[2].status,
+            spotify: results[3].status,
+            lastfm: results[4].status
           })
           
           // Extract successful results (iTunes first for highest quality)
           const itunesResults = results[0].status === 'fulfilled' ? results[0].value : []
           const deezerResults = results[1].status === 'fulfilled' ? results[1].value : []
-          // const discogsResults = [] // DISABLED
-          const spotifyResults = results[2].status === 'fulfilled' ? results[2].value : []
-          const lastfmResults = results[3].status === 'fulfilled' ? results[3].value : []
+          const discogsResults = results[2].status === 'fulfilled' ? results[2].value : []
+          const spotifyResults = results[3].status === 'fulfilled' ? results[3].value : []
+          const lastfmResults = results[4].status === 'fulfilled' ? results[4].value : []
           
           if (results[0].status === 'rejected') console.error('❌ iTunes failed:', results[0].reason)
           if (results[1].status === 'rejected') console.error('❌ Deezer failed:', results[1].reason)
-          // Discogs disabled
-          if (results[2].status === 'rejected') console.error('❌ Spotify failed:', results[2].reason)
-          if (results[3].status === 'rejected') console.error('❌ Last.fm failed:', results[3].reason)
+          if (results[2].status === 'rejected') console.error('❌ Discogs failed:', results[2].reason)
+          if (results[3].status === 'rejected') console.error('❌ Spotify failed:', results[3].reason)
+          if (results[4].status === 'rejected') console.error('❌ Last.fm failed:', results[4].reason)
           
           console.log('📈 Result counts:', {
             itunes: itunesResults.length,
             deezer: deezerResults.length,
-            // discogs: 0, // DISABLED
+            discogs: discogsResults.length,
             spotify: spotifyResults.length,
             lastfm: lastfmResults.length
           })
@@ -653,7 +652,13 @@ export default function Home() {
               resolution: deezerResults[0].artworkUrl.includes('1000x1000') ? '✅ 1000×1000' : '⚠️ Lower res'
             })
           }
-          // Discogs disabled - no logging
+          if (discogsResults[0]?.artworkUrl) {
+            console.log('💿 Discogs sample:', {
+              title: discogsResults[0].title,
+              url: discogsResults[0].artworkUrl,
+              resolution: '~600×600 typical'
+            })
+          }
           if (spotifyResults[0]?.artworkUrl) {
             console.log('🎧 Spotify sample:', {
               title: spotifyResults[0].title,
@@ -668,8 +673,8 @@ export default function Home() {
             })
           }
           
-          // Combine in priority order: iTunes → Deezer → Spotify → Last.fm (Discogs disabled)
-          const combined = [...itunesResults, ...deezerResults, ...spotifyResults, ...lastfmResults]
+          // Combine in priority order: iTunes → Deezer → Discogs → Spotify → Last.fm
+          const combined = [...itunesResults, ...deezerResults, ...discogsResults, ...spotifyResults, ...lastfmResults]
           
           // Log final order
           console.log('📊 Final results order (first 5):')

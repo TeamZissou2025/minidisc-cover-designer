@@ -164,12 +164,12 @@ export const TEMPLATE_CATEGORIES = [
 ]
 
 // Version information
-export const VERSION = '0.3.7f';
+export const VERSION = '0.3.7g';
 
 export const VERSION_INFO = {
-  version: '0.3.7f',
+  version: '0.3.7g',
   releaseDate: '2026-02-07',
-  releaseName: 'Versioning Corrected',
-  features: 'Versioning Corrected',
+  releaseName: '5 Artwork Sources',
+  features: '5 artwork sources active',
 };
 
