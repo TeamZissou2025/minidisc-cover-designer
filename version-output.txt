@@ -1,0 +1,38 @@
+
+> minidisc-cover-designer@0.3.7e version:update
+> node scripts/update-version.js
+
+🔄 Updating version across project...
+
+✅ Updated package.json to v0.3.7e
+✅ Updated lib/constants.ts to v0.3.7e
+
+📋 Version Summary:
+   Version: 0.3.7e
+   Release: 4 Artwork Sources
+   Date: 2026-02-07
+   Features: 4 artwork sources active
+
+📝 Changelog:
+   • iTunes API integration (3000×3000px)
+   • Deezer API integration (1000×1000px)
+   • Spotify API integration (640×640px)
+   • Last.fm API integration (300×300px)
+   • Smart title auto-scaling for long titles
+   • PDF export with accurate physical dimensions
+   • Discogs API temporarily disabled (debugging)
+
+📡 API Status:
+   ✅ 🎵 itunes: 3000×3000
+   ✅ 🎶 deezer: 1000×1000
+   ✅ 🎧 spotify: 640×640
+   ✅ 📻 lastfm: 300×300
+   ❌ 💿 discogs: 600×600 (Temporarily disabled)
+
+✅ Version update complete!
+
+Next steps:
+  1. Review changes: git diff
+  2. Commit: git add . && git commit -m "v0.3.7e - 4 Artwork Sources"
+  3. Deploy: git push
+
