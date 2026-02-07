@@ -326,12 +326,12 @@ export default function Home() {
     }
   }
 
-  // Deezer API Search with Fuzzy Matching
+  // Deezer API Search with Fuzzy Matching (via proxy to avoid CORS)
   const searchDeezer = async (artist: string, album: string): Promise<SearchResult[]> => {
     try {
-      const query = encodeURIComponent(`${artist} ${album}`)
+      const query = `${artist} ${album}`
       const response = await fetch(
-        `https://api.deezer.com/search/album?q=${query}&limit=20`
+        `/api/proxy/deezer?q=${encodeURIComponent(query)}`
       )
       
       if (!response.ok) return []
@@ -360,14 +360,12 @@ export default function Home() {
     }
   }
 
-  // Last.fm API Search with Fuzzy Matching
+  // Last.fm API Search with Fuzzy Matching (via proxy to avoid CORS/403)
   const searchLastFm = async (artist: string, album: string): Promise<SearchResult[]> => {
     try {
-      const query = encodeURIComponent(`${artist} ${album}`)
-      const API_KEY = '6d43fd481fed3e5946df5b87c6d2aa89' // Free public API key
-      
+      const query = `${artist} ${album}`
       const response = await fetch(
-        `https://ws.audioscrobbler.com/2.0/?method=album.search&album=${query}&api_key=${API_KEY}&format=json&limit=20`
+        `/api/proxy/lastfm?q=${encodeURIComponent(query)}`
       )
       
       if (!response.ok) return []
