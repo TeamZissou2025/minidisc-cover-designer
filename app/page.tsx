@@ -1122,6 +1122,24 @@ Please try again or use Manual Entry.`)
                             <span className={`font-semibold truncate ${
                               uiTheme === 'light' ? 'text-gray-900' : 'text-white'
                             }`}>{result.title}</span>
+                            
+                            {/* Source badge with quality indicator */}
+                            {result.source === 'itunes' && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded-full whitespace-nowrap font-semibold">
+                                🎵 3000×3000
+                              </span>
+                            )}
+                            {result.source === 'deezer' && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded-full whitespace-nowrap font-semibold">
+                                🎶 1000×1000
+                              </span>
+                            )}
+                            {result.source === 'lastfm' && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded-full whitespace-nowrap font-semibold">
+                                📻 300×300
+                              </span>
+                            )}
+                            
                             {result.relevanceScore && result.relevanceScore < 0.9 && (
                               <span className="text-[10px] px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full whitespace-nowrap">
                                 ~{Math.round(result.relevanceScore * 100)}%
